@@ -1,89 +1,65 @@
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import style from "./App.module.css";
+import { useForm } from "react-hook-form";
+import * as yup from "yup";
+import { yupResolver } from "@hookform/resolvers/yup";
 
 export const App = () => {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [passwordError, setPasswordError] = useState(null);
-    const [emailError, setEmailError] = useState(null);
-    const [confirmPasswordError, setConfirmPasswordError] = useState(null);
-
     const submitBtnRef = useRef(null);
 
-    const canFocusButton = () => {
-        return (
-            !emailError &&
-            !passwordError &&
-            !confirmPasswordError &&
-            email &&
-            password &&
-            confirmPassword
-        );
+    const fieldScheme = yup.object().shape({
+        email: yup
+            .string()
+            .email("Некорректный email.")
+            .required("Email обязателен"),
+        password: yup
+            .string()
+            .matches(
+                /[A-Z]/,
+                "Пароль должен содержать хотя бы одну заглавную букву.",
+            )
+            .matches(
+                /[a-z]/,
+                "Пароль должен содержать хотя бы одну строчную букву.",
+            )
+            .matches(/[0-9]/, "Пароль должен содержать хотя бы одну цифру.")
+            .matches(
+                /[!@#$%^&*]/,
+                "Пароль должен содержать хотя бы один специальный символ (!@#$%^&*).",
+            )
+            .max(20, "Пароль должен содержать не более 20 символов"),
+        passwordBlure: yup
+            .string()
+            .min(6, "Пароль должен быть не менее 6 символов."),
+        confirmPassword: yup
+            .string()
+            .oneOf([yup.ref("password")], "Пароли не совпадают"),
+    });
+
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm({
+        defaultValues: {
+            email: "",
+            password: "",
+            confirmPassword: "",
+        },
+        resolver: yupResolver(fieldScheme),
+    });
+
+    const emailError = errors.email?.message;
+    const passwordError = errors.password?.message;
+    const confirmPasswordError = errors.confirmPassword?.message;
+
+    const onSubmit = (formData) => {
+        console.log(formData);
     };
-
-    const validateEmail = (email) => {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(String(email).toLowerCase());
-    };
-
-    const onEmailChange = ({ target }) => {
-        setEmail(target.value);
-        if (!validateEmail(target.value)) {
-            setEmailError("Некорректный email.");
-        } else {
-            setEmailError(null);
-        }
-    };
-
-    const onPasswordChange = ({ target }) => {
-        setPassword(target.value);
-
-        let error = null;
-
-        if (target.value.length < 6) {
-            error = "Пароль должен быть не менее 6 символов.";
-        }
-
-        else if (!/[A-Z]/.test(target.value)) {
-            error = "Пароль должен содержать хотя бы одну заглавную букву.";
-        }
-
-        else if (!/[a-z]/.test(target.value)) {
-            error = "Пароль должен содержать хотя бы одну строчную букву.";
-        }
-
-        else if (!/[0-9]/.test(target.value)) {
-            error = "Пароль должен содержать хотя бы одну цифру.";
-        }
-
-        else if (!/[!@#$%^&*]/.test(target.value)) {
-            error = "Пароль должен содержать хотя бы один специальный символ (!@#$%^&*).";
-        }
-
-        setPasswordError(error);
-    };
-
-    const onConfirmPasswordChange = ({ target }) => {
-        setConfirmPassword(target.value);
-
-        if (password !== target.value) {
-            setConfirmPasswordError("Пароли не совпадают");
-        } else setConfirmPasswordError(null);
-
-
-    };
-
-    const onSubmit = (event) => {
-        event.preventDefault();
-        console.log({ email, password, confirmPassword });
-    };
-
-
 
     return (
         <div className={style.app}>
-            <form className={style.form} onSubmit={onSubmit}>
+            <form className={style.form} onSubmit={handleSubmit(onSubmit)}>
                 {emailError && (
                     <span className={style.error}>{emailError}</span>
                 )}
@@ -91,9 +67,8 @@ export const App = () => {
                     className={style.input}
                     type="email"
                     name="email"
-                    value={email}
                     placeholder="Email"
-                    onChange={onEmailChange}
+                    {...register("email")}
                 ></input>
                 {passwordError && (
                     <span className={style.error}>{passwordError}</span>
@@ -102,9 +77,8 @@ export const App = () => {
                     className={style.input}
                     type="password"
                     name="password"
-                    value={password}
                     placeholder="Password"
-                    onChange={onPasswordChange}
+                    {...register("password")}
                 ></input>
                 {confirmPasswordError && (
                     <span className={style.error}>{confirmPasswordError}</span>
@@ -113,9 +87,8 @@ export const App = () => {
                     className={style.input}
                     type="password"
                     name="confirmPassword"
-                    value={confirmPassword}
                     placeholder="confirmPassword"
-                    onChange={onConfirmPasswordChange}
+                    {...register("confirmPassword")}
                 ></input>
                 <button
                     ref={submitBtnRef}
