@@ -5,8 +5,6 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 
 export const App = () => {
-    const submitBtnRef = useRef(null);
-
     const fieldScheme = yup.object().shape({
         email: yup
             .string()
@@ -27,19 +25,20 @@ export const App = () => {
                 /[!@#$%^&*]/,
                 "Пароль должен содержать хотя бы один специальный символ (!@#$%^&*).",
             )
-            .max(20, "Пароль должен содержать не более 20 символов"),
-        passwordBlure: yup
-            .string()
+            .max(20, "Пароль должен содержать не более 20 символов")
             .min(6, "Пароль должен быть не менее 6 символов."),
         confirmPassword: yup
             .string()
-            .oneOf([yup.ref("password")], "Пароли не совпадают"),
+            .oneOf([yup.ref("password"), null], "Пароли не совпадают")
+            .required("Подтверждение пароля обязательно"),
     });
 
     const {
         register,
         handleSubmit,
         formState: { errors },
+        trigger,
+
     } = useForm({
         defaultValues: {
             email: "",
@@ -47,6 +46,7 @@ export const App = () => {
             confirmPassword: "",
         },
         resolver: yupResolver(fieldScheme),
+        mode: "onChange",
     });
 
     const emailError = errors.email?.message;
@@ -55,6 +55,15 @@ export const App = () => {
 
     const onSubmit = (formData) => {
         console.log(formData);
+    };
+
+    const submitBtnRef = useRef(null);
+
+    const handleFieldChange = async () => {
+        const isValid = await trigger();
+        if (isValid) {
+            submitBtnRef.current.focus();
+        }
     };
 
     return (
@@ -69,6 +78,7 @@ export const App = () => {
                     name="email"
                     placeholder="Email"
                     {...register("email")}
+                    onBlur={handleFieldChange}
                 ></input>
                 {passwordError && (
                     <span className={style.error}>{passwordError}</span>
@@ -79,6 +89,7 @@ export const App = () => {
                     name="password"
                     placeholder="Password"
                     {...register("password")}
+                    onBlur={handleFieldChange}
                 ></input>
                 {confirmPasswordError && (
                     <span className={style.error}>{confirmPasswordError}</span>
@@ -89,6 +100,7 @@ export const App = () => {
                     name="confirmPassword"
                     placeholder="confirmPassword"
                     {...register("confirmPassword")}
+                    onBlur={handleFieldChange}
                 ></input>
                 <button
                     ref={submitBtnRef}
